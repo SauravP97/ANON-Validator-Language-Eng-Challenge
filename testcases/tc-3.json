@@ -1,0 +1,17 @@
+{
+   "name": "Saurav",
+   "contact": [ 
+       "9911453471",
+       "9576349422",
+   ],
+   "organization": [
+       {
+           "company": "google",
+           "year": "2020", 
+       },
+       {
+           "company": "amazon",
+           "year": "2018",
+       },
+   ],
+}
