@@ -4,7 +4,7 @@
 ANON (Another Notorious Object Notation) is a madeup configuration format very similar to JSON. We need to build a validator that validates whether a given ANON String is syntactically correct or not.
 
 ## How to Test :
-  1. Host this web application and open the index.php file to test the ANON Parser
+  1. Host this web application and open the **index.php** file to test the ANON Parser
 
 ## Directory Contents : 
   1. **parser** : Contains the Parser Business Logic
