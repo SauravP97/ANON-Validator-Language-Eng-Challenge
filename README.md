@@ -21,3 +21,7 @@ The process of conversion of a valid ANON string to the recursive tree looks lik
 ![Parse Sample 1](/images/parser-sample-1.png)
 ![Parse Sample 2](/images/parser-sample-2.png)
 ![Parse Sample 3](/images/parser-sample-3.png)
+
+## Sample Video
+
+![Parse Sample Video](/video/parser-sample-gif.gif)
