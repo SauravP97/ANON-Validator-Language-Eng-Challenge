@@ -6,6 +6,8 @@
         private $valid;
         private $parsedJson;
         private $stringMap;
+        private $errorMessage ;
+        private $errorKey;
 
         function __construct($parseString)
         {
@@ -14,6 +16,7 @@
             $this->valid = true;
             $this->parsedJson = [];
             $this->stringMap = [];
+            $this->errorMessage = [];
         }
 
         // Fetches all the commas and colons present at the current
@@ -58,6 +61,9 @@
         //  2. Numbers
         //  3. Boolean
         function validateJsonDataType($value){
+            if(!$this->valid){
+                return 0;
+            }
             if($value[0]=='<' && $value[strlen($value)-1]=='>'){
                 if(@$this->stringMap[$value]){
                     $value = $this->stringMap[$value];
@@ -71,17 +77,22 @@
                     }
                 }
                 $this->valid = false;
+                $this->errorMessage[] = "Error parsing the JSON object at : ".$value;
                 return 0;
             }
             if(is_numeric($value) || $value == "true" || $value == "false"){
                 return $value;
             }
             $this->valid = false;
+            $this->errorMessage[] = "Error parsing the JSON object at : ".$value;
             return 0;
         }
 
         // Checks whether JSON Object is Valid or not
         function validateJsonObject($object){
+            if(!$this->valid){
+                return [];
+            }
             $curMap = [];
             $object = trim($object);
             if($object[0]=='{' && $object[strlen($object)-1]=='}'){
@@ -100,9 +111,12 @@
                         $key = $this->stringMap[$key];
                     }
                     else{
+                        $this->errorMessage[] = "Invalid JSON Key at : ".$key;
                         $this->valid = false;
+                        return $curMap;
                     }
-                    
+                    $this->errorKey = $key;
+
                     if($value[0] == '{'){
                         $curMap[$key] = $this->validateJsonObject($value);
                     }
@@ -115,13 +129,18 @@
                 }
             }
             else{
+                $this->errorMessage[] = "JSON object must start and end with a { } near ".$this->errorKey;
                 $this->valid = false;
+                return $curMap;
             }
             return $curMap;
         }
 
         // Checks whether JSON Array is valid or not
         function validateJsonArray($object){
+            if(!$this->valid){
+                return [];
+            }
             $curArray = [];
             $object = trim($object);
             if($object[0]=='[' && $object[strlen($object)-1]==']'){
@@ -132,6 +151,7 @@
                 $object = $this->transformCurrentLevelSeperators($object);
                 
                 $values = explode('<comma>', $object);
+                
                 foreach($values as $value){
                     $value = trim($value);
                     if($value[0] == '{'){
@@ -146,13 +166,16 @@
                 }
             }
             else{
+                $this->errorMessage[] = "Array of JSON objects must start and end with a [ ] near ".$this->errorKey;
                 $this->valid = false;
+                return $curArray;
             }    
             return $curArray;
         }
 
         function validateJsonString(){
             $this->extractComments();
+            $this->errorKey = "Root Key";
             $this->parseString = str_replace("\n", " ", $this->parseString);
 
             $this->mapAllString(); 
@@ -194,17 +217,48 @@
 
             for($i=0; $i<strlen($this->parseString); $i++){
                 $char = $this->parseString[$i];
-                if($char == '"' && $count == 0){
-                    $curKey .= $char;
-                    $count = 1;
+                if($char=='\\' && $i+1<strlen($this->parseString) && $this->parseString[$i+1]=='"'){
+                    if($count == 0){
+                        $formattedString .= $this->parseString[$i+1];
+                    }
+                    else{
+                        $curKey .= $this->parseString[$i+1];
+                    }
+                    $i++;
+                    continue;
                 }
-                else if($char == '"' && $count == 1){
-                    $curKey .= $char;
-                    $this->stringMap["<".$keyValue.">"] = $curKey;
-                    $curKey = "";
-                    $count = 0;
-                    $formattedString .= "<".$keyValue.">";
-                    $keyValue++;
+                if($char == '"' && $count == 0){
+                    if($i+2<strlen($this->parseString) && $this->parseString[$i+1] == $char && $this->parseString[$i+2] == $char){
+                        $i = $i+2;
+                        $curKey .= $char.$char.$char;
+                        $count = 2;
+                    }
+                    else{
+                        $curKey .= $char;
+                        $count = 1;
+                    }
+                }
+                else if($char == '"' && ($count == 1 || $count == 2)){
+                    if($count == 1){
+                        $curKey .= $char;
+                        $this->stringMap["<".$keyValue.">"] = $curKey;
+                        $curKey = "";
+                        $count = 0;
+                        $formattedString .= "<".$keyValue.">";
+                        $keyValue++;
+                    }
+                    else if($i+2<strlen($this->parseString) && $this->parseString[$i+1] == $char && $this->parseString[$i+2] == $char){
+                        $curKey .= $char.$char.$char;
+                        $this->stringMap["<".$keyValue.">"] = $curKey;
+                        $curKey = "";
+                        $count = 0;
+                        $formattedString .= "<".$keyValue.">";
+                        $keyValue++;
+                        $i = $i+2;
+                    }
+                    else{
+                        $curKey .= $char;
+                    }
                 }
                 else{
                     if($count == 0){
@@ -227,6 +281,10 @@
                 return $this->parsedJson;
             }
         }
+
+        function getErrorMessage(){
+            return $this->errorMessage;
+        }
     }
 
     if(!@$_POST['anonString']){
@@ -237,5 +295,5 @@
     //Start ANON Parsing Process
     $parseObject = new AnonParser($_POST['anonString']);
     $parseObject->validateJsonString();
-    echo json_encode(["status"=> true, "valid"=> $parseObject->isValidJsonObject(), "object"=> json_encode($parseObject->getParsedJsonObject())]);
+    echo json_encode(["status"=> true, "valid"=> $parseObject->isValidJsonObject(), "error"=> json_encode($parseObject->getErrorMessage()), "object"=> json_encode($parseObject->getParsedJsonObject())]);
 ?>

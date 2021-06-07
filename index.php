@@ -88,11 +88,10 @@
                 if (data.status) {
 					if(!data.valid){
 						$(".validated-response").html("Status : <b style='color:#ea9d9d;'>Failed</b> <br> Invalid ANON String Passed");
-						$(".validated-object").html("--");
+						$(".validated-object").html(data.error);
 					} else{
 						var jsonObject = JSON.parse(data.object);
 						displayJsObject(jsonObject,"");
-						console.log(jsString);
 						$(".validated-response").html("Status : Success ");
 						$(".validated-object").html(jsString);
 					}
@@ -110,11 +109,15 @@
 	// Function formats and displays the JSON validated object
 	function displayJsObject(object, spaces){
 		for(var key in object){
+			key = key.replace(/</g, "&lt");
+			key = key.replace(/>/g, "&gt");
 			if(typeof object[key] === "object"){
 				jsString += spaces + key + " :<br>";
 				displayJsObject(object[key], spaces+"&nbsp;&nbsp");
 			}
 			else{
+				object[key] = object[key].replace(/</g, "&lt");
+				object[key] = object[key].replace(/>/g, "&gt");
 				jsString += spaces + key + " : " + object[key] + "<br>";
 			}
 		}
